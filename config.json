@@ -1,0 +1,19 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "root",
+    "password": "password",
+    "database": "node_boilerplate"
+  },
+  "secret": "SUPER-SECRET-KEY-REPLACE-ME-IN-PRODUCTION",
+  "emailFrom": "info@my-node-api.com",
+  "smtpOptions": {
+    "host": "smtp.ethereal.email",
+    "port": 587,
+    "auth": {
+      "user": "armani.lang99@ethereal.email",
+      "pass": "VxNJw85FXWGP3g3ATv"
+    }
+  }
+}

@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node dist/server.js",
-  "dev": "nodemon --exec ts-node server.ts",
-  "build": "tsc"
-},
+    "start": "node dist/server.js",
+    "dev": "nodemon --exec ts-node server.ts",
+    "build": "tsc && cp swagger.yaml dist/swagger.yaml"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

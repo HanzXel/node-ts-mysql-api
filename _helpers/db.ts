@@ -18,16 +18,16 @@ const dbName     = process.env.DB_NAME     || config.database?.database || 'node
 export const db: any = {};
 
 export async function initialize() {
-  // Create DB if it doesn't exist (skip on PlanetScale/managed DBs)
+  // Create DB if it doesn't exist (skip on managed DBs)
   try {
     const connection = await mysql2.createConnection({
-      host: dbHost, port: dbPort, user: dbUser, password: dbPassword
+      host: dbHost, port: dbPort, user: dbUser, password: dbPassword,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined
     }).promise();
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
     await connection.end();
   } catch (err: any) {
-    // Managed DB hosts (e.g. Aiven, PlanetScale) may not allow CREATE DATABASE — that's fine
-    console.warn('⚠️  Could not auto-create database (this is normal on managed hosts):', err.message);
+    console.warn('⚠️  Could not auto-create database (normal on managed hosts):', err.message);
   }
 
   // Connect with Sequelize
@@ -36,9 +36,18 @@ export async function initialize() {
     port: dbPort,
     dialect: 'mysql',
     logging: false,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 60000,
+      idle: 10000
+    },
     dialectOptions: process.env.DB_SSL === 'true' ? {
-      ssl: { rejectUnauthorized: false }
-    } : {}
+      ssl: { rejectUnauthorized: false },
+      connectTimeout: 60000
+    } : {
+      connectTimeout: 60000
+    }
   });
 
   db.sequelize = sequelize;

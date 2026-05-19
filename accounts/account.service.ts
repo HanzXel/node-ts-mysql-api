@@ -4,7 +4,16 @@ import crypto from 'crypto';
 import { db } from '../_helpers/db';
 import { Role } from '../_helpers/role';
 import { sendEmail } from '../_helpers/send-email';
-const config = require('../config.json');
+
+// Use environment variables in production, fallback to config.json locally
+let config: any;
+try {
+  config = require('../config.json');
+} catch {
+  config = {};
+}
+
+const secret = process.env.JWT_SECRET || config.secret || 'SUPER-SECRET-KEY-REPLACE-ME';
 
 export const accountService = {
   authenticate,
@@ -89,7 +98,7 @@ async function forgotPassword({ email }: any, origin: string) {
   if (!account) return;
 
   account.resetToken = randomTokenString();
-  account.resetTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+  account.resetTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await account.save();
 
   await sendPasswordResetEmail(account, origin);
@@ -170,14 +179,14 @@ async function getRefreshToken(token: string) {
 }
 
 function generateJwtToken(account: any) {
-  return jwt.sign({ sub: account.id, id: account.id }, config.secret, { expiresIn: '15m' });
+  return jwt.sign({ sub: account.id, id: account.id }, secret, { expiresIn: '15m' });
 }
 
 async function generateRefreshToken(account: any, ipAddress: string) {
   return new db.RefreshToken({
     accountId: account.id,
     token: randomTokenString(),
-    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     createdByIp: ipAddress
   });
 }
@@ -192,11 +201,11 @@ function basicDetails(account: any) {
 }
 
 async function sendVerificationEmail(account: any, origin: string) {
-  const verifyUrl = `${origin}/accounts/verify-email?token=${account.verificationToken}`;
+  const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
   await sendEmail({
     to: account.email,
     subject: 'Sign-up Verification - Verify Email',
-    html: `<p>Please click the link below to verify your email:</p>
+    html: `<p>Please click the link below to verify your email address:</p>
            <p><a href="${verifyUrl}">${verifyUrl}</a></p>`
   });
 }
@@ -205,16 +214,17 @@ async function sendAlreadyRegisteredEmail(email: string, origin: string) {
   await sendEmail({
     to: email,
     subject: 'Email Already Registered',
-    html: `<p>Your email <strong>${email}</strong> is already registered.</p>`
+    html: `<p>Your email <strong>${email}</strong> is already registered.</p>
+           <p>If you forgot your password, visit the <a href="${origin}/account/forgot-password">forgot password</a> page.</p>`
   });
 }
 
 async function sendPasswordResetEmail(account: any, origin: string) {
-  const resetUrl = `${origin}/accounts/reset-password?token=${account.resetToken}`;
+  const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
   await sendEmail({
     to: account.email,
     subject: 'Reset Password',
-    html: `<p>Please click the link below to reset your password:</p>
+    html: `<p>Please click the link below to reset your password (valid for 24 hours):</p>
            <p><a href="${resetUrl}">${resetUrl}</a></p>`
   });
 }

@@ -12,7 +12,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(cors({ origin: '*', credentials: true }));
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:4200',
+  credentials: true
+}));
 
 // ─── Swagger Docs ──────────────────────────────────────────────────
 swaggerDocs(app);
@@ -24,13 +27,13 @@ app.use('/accounts', accountsController);
 app.use(errorHandler);
 
 // ─── Start Server ─────────────────────────────────────────────────
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 initialize().then(() => {
   app.listen(PORT, () => {
     console.log(`✅ Database initialized`);
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-    console.log(`📄 Swagger docs at http://localhost:${PORT}/api-docs`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📄 Swagger docs at /api-docs`);
   });
 }).catch(err => {
   console.error('❌ Failed to initialize database:', err);

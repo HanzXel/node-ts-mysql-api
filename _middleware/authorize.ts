@@ -1,7 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { expressjwt } from 'express-jwt';
 import { db } from '../_helpers/db';
-const config = require('../config.json');
+
+// Use environment variables in production, fallback to config.json locally
+let config: any;
+try {
+  config = require('../config.json');
+} catch {
+  config = {};
+}
+
+const secret = process.env.JWT_SECRET || config.secret || 'SUPER-SECRET-KEY-REPLACE-ME';
 
 export function authorize(roles: string[] | string = []) {
   if (typeof roles === 'string') {
@@ -10,7 +19,7 @@ export function authorize(roles: string[] | string = []) {
 
   return [
     // Step 1: Authenticate JWT token
-    expressjwt({ secret: config.secret, algorithms: ['HS256'] }),
+    expressjwt({ secret, algorithms: ['HS256'] }),
 
     // Step 2: Authorize role & attach user info
     async (req: any, res: Response, next: NextFunction) => {

@@ -201,8 +201,11 @@ function _delete(req: any, res: Response, next: NextFunction) {
 
 // ─── Cookie Helper ─────────────────────────────────────────────────
 function setTokenCookie(res: Response, token: string) {
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.COOKIE_SECURE === 'true';
   res.cookie('refreshToken', token, {
     httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   });
 }

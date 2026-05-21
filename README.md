@@ -3,11 +3,9 @@
 A RESTful authentication API built with Node.js, TypeScript, Express, Sequelize, and MySQL.
 
 ## Live URLs
-- **Backend API:** https://your-backend.onrender.com
-- **Swagger Docs:** https://your-backend.onrender.com/api-docs
-- **Frontend:** https://your-frontend.onrender.com
-
-> Update the URLs above after deployment.
+- **Backend API:** https://node-ts-mysql-api.onrender.com
+- **Swagger Docs:** https://node-ts-mysql-api.onrender.com/api-docs
+- **Frontend:** https://angular-21-auth-boilerplate-av85.onrender.com
 
 ## Features
 - JWT authentication with refresh tokens (HttpOnly cookies)
@@ -65,12 +63,12 @@ Swagger docs at `http://localhost:4000/api-docs`
 | `NODE_ENV` | Set to `production` |
 | `JWT_SECRET` | Strong random secret key |
 | `DB_HOST` | MySQL host |
-| `DB_PORT` | MySQL port (default 3306) |
+| `DB_PORT` | MySQL port |
 | `DB_USER` | MySQL username |
 | `DB_PASSWORD` | MySQL password |
 | `DB_NAME` | Database name |
 | `DB_SSL` | Set to `true` for managed DB hosts |
-| `CORS_ORIGIN` | Exact frontend URL e.g. `https://your-frontend.onrender.com` |
+| `CORS_ORIGIN` | Exact frontend URL |
 | `COOKIE_SECURE` | Set to `true` in production |
 | `EMAIL_FROM` | Sender email address |
 | `SMTP_HOST` | SMTP server host |

@@ -5,7 +5,10 @@ info:
   description: Authentication API with JWT and Refresh Tokens
 
 servers:
+  - url: https://node-ts-mysql-api.onrender.com
+    description: Production
   - url: http://localhost:4000
+    description: Local Development
 
 components:
   securitySchemes:
@@ -25,15 +28,17 @@ paths:
           application/json:
             schema:
               type: object
+              required: [firstName, lastName, email, password, confirmPassword, acceptTerms]
               properties:
-                firstName: { type: string }
-                lastName: { type: string }
-                email: { type: string }
-                password: { type: string }
-                confirmPassword: { type: string }
-                acceptTerms: { type: boolean }
+                firstName: { type: string, example: John }
+                lastName: { type: string, example: Doe }
+                email: { type: string, example: john@example.com }
+                password: { type: string, example: password123 }
+                confirmPassword: { type: string, example: password123 }
+                acceptTerms: { type: boolean, example: true }
       responses:
-        '200': { description: Registration successful }
+        '200': { description: Registration successful - check email for verification }
+        '400': { description: Validation error }
 
   /accounts/authenticate:
     post:
@@ -45,8 +50,152 @@ paths:
           application/json:
             schema:
               type: object
+              required: [email, password]
               properties:
+                email: { type: string, example: john@example.com }
+                password: { type: string, example: password123 }
+      responses:
+        '200': { description: Authentication successful - returns JWT token }
+        '400': { description: Email or password is incorrect }
+
+  /accounts/verify-email:
+    post:
+      summary: Verify email address
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Verification successful }
+
+  /accounts/refresh-token:
+    post:
+      summary: Refresh JWT token using cookie
+      tags: [Accounts]
+      responses:
+        '200': { description: New JWT token returned }
+
+  /accounts/revoke-token:
+    post:
+      summary: Logout - revoke refresh token
+      tags: [Accounts]
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Token revoked }
+
+  /accounts/forgot-password:
+    post:
+      summary: Request password reset email
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, example: john@example.com }
+      responses:
+        '200': { description: Reset email sent }
+
+  /accounts/validate-reset-token:
+    post:
+      summary: Validate password reset token
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Token is valid }
+
+  /accounts/reset-password:
+    post:
+      summary: Reset password using token
+      tags: [Accounts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password, confirmPassword]
+              properties:
+                token: { type: string }
+                password: { type: string, example: newpassword123 }
+                confirmPassword: { type: string, example: newpassword123 }
+      responses:
+        '200': { description: Password reset successful }
+
+  /accounts:
+    get:
+      summary: Get all accounts (Admin only)
+      tags: [Accounts]
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: List of all accounts }
+        '401': { description: Unauthorized }
+
+  /accounts/{id}:
+    get:
+      summary: Get account by ID
+      tags: [Accounts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Account details }
+        '401': { description: Unauthorized }
+    put:
+      summary: Update account
+      tags: [Accounts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
                 email: { type: string }
                 password: { type: string }
+                confirmPassword: { type: string }
       responses:
-        '200': { description: Authentication successful }
+        '200': { description: Account updated }
+    delete:
+      summary: Delete account
+      tags: [Accounts]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Account deleted }

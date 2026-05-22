@@ -14,6 +14,8 @@ try {
 }
 
 const secret = process.env.JWT_SECRET || config.secret || 'SUPER-SECRET-KEY-REPLACE-ME';
+// Always use CORS_ORIGIN as the frontend URL for email links
+const frontendUrl = process.env.CORS_ORIGIN || 'http://localhost:4200';
 
 export const accountService = {
   authenticate,
@@ -31,33 +33,26 @@ export const accountService = {
   delete: _delete
 };
 
-// ─── Core Functions ───────────────────────────────────────────────
-
 async function authenticate({ email, password, ipAddress }: any) {
   const account = await db.Account.scope('withHash').findOne({ where: { email } });
-
   if (!account || !account.isVerified || !bcrypt.compareSync(password, account.passwordHash)) {
     throw 'Email or password is incorrect';
   }
-
   const jwtToken = generateJwtToken(account);
   const refreshTokenObj = await generateRefreshToken(account, ipAddress);
   await refreshTokenObj.save();
-
   return { ...basicDetails(account), jwtToken, refreshToken: refreshTokenObj.token };
 }
 
 async function refreshToken({ token, ipAddress }: any) {
   const refreshTokenObj = await getRefreshToken(token);
   const account = await refreshTokenObj.getAccount();
-
   const newRefreshToken = await generateRefreshToken(account, ipAddress);
   refreshTokenObj.revoked = new Date();
   refreshTokenObj.revokedByIp = ipAddress;
   refreshTokenObj.replacedByToken = newRefreshToken.token;
   await refreshTokenObj.save();
   await newRefreshToken.save();
-
   const jwtToken = generateJwtToken(account);
   return { ...basicDetails(account), jwtToken, refreshToken: newRefreshToken.token };
 }
@@ -71,23 +66,20 @@ async function revokeToken({ token, ipAddress }: any) {
 
 async function register(params: any, origin: string) {
   if (await db.Account.findOne({ where: { email: params.email } })) {
-    return await sendAlreadyRegisteredEmail(params.email, origin);
+    return await sendAlreadyRegisteredEmail(params.email);
   }
-
   const account = new db.Account(params);
   const isFirstAccount = (await db.Account.count()) === 0;
   account.role = isFirstAccount ? Role.Admin : Role.User;
   account.verificationToken = randomTokenString();
   account.passwordHash = bcrypt.hashSync(params.password, 10);
   await account.save();
-
-  await sendVerificationEmail(account, origin);
+  await sendVerificationEmail(account);
 }
 
 async function verifyEmail({ token }: any) {
   const account = await db.Account.findOne({ where: { verificationToken: token } });
   if (!account) throw 'Verification failed';
-
   account.verified = new Date();
   account.verificationToken = undefined;
   await account.save();
@@ -96,12 +88,10 @@ async function verifyEmail({ token }: any) {
 async function forgotPassword({ email }: any, origin: string) {
   const account = await db.Account.findOne({ where: { email } });
   if (!account) return;
-
   account.resetToken = randomTokenString();
   account.resetTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await account.save();
-
-  await sendPasswordResetEmail(account, origin);
+  await sendPasswordResetEmail(account);
 }
 
 async function validateResetToken({ token }: any) {
@@ -133,7 +123,6 @@ async function create(params: any) {
   if (await db.Account.findOne({ where: { email: params.email } })) {
     throw `Email '${params.email}' is already registered`;
   }
-
   const account = new db.Account(params);
   account.verified = new Date();
   account.passwordHash = bcrypt.hashSync(params.password, 10);
@@ -143,16 +132,13 @@ async function create(params: any) {
 
 async function update(id: number, params: any) {
   const account = await getAccount(id);
-
   if (params.email && account.email !== params.email &&
       await db.Account.findOne({ where: { email: params.email } })) {
     throw `Email '${params.email}' is already taken`;
   }
-
   if (params.password) {
     params.passwordHash = bcrypt.hashSync(params.password, 10);
   }
-
   Object.assign(account, params);
   account.updated = new Date();
   await account.save();
@@ -200,8 +186,10 @@ function basicDetails(account: any) {
   return { id, firstName, lastName, email, role, created, updated, isVerified };
 }
 
-async function sendVerificationEmail(account: any, origin: string) {
-  const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
+// ─── Email Helpers — always use frontendUrl so links point to Angular app ──
+
+async function sendVerificationEmail(account: any) {
+  const verifyUrl = `${frontendUrl}/account/verify-email?token=${account.verificationToken}`;
   await sendEmail({
     to: account.email,
     subject: 'Sign-up Verification - Verify Email',
@@ -210,17 +198,17 @@ async function sendVerificationEmail(account: any, origin: string) {
   });
 }
 
-async function sendAlreadyRegisteredEmail(email: string, origin: string) {
+async function sendAlreadyRegisteredEmail(email: string) {
   await sendEmail({
     to: email,
     subject: 'Email Already Registered',
     html: `<p>Your email <strong>${email}</strong> is already registered.</p>
-           <p>If you forgot your password, visit the <a href="${origin}/account/forgot-password">forgot password</a> page.</p>`
+           <p>If you forgot your password, visit the <a href="${frontendUrl}/account/forgot-password">forgot password</a> page.</p>`
   });
 }
 
-async function sendPasswordResetEmail(account: any, origin: string) {
-  const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
+async function sendPasswordResetEmail(account: any) {
+  const resetUrl = `${frontendUrl}/account/reset-password?token=${account.resetToken}`;
   await sendEmail({
     to: account.email,
     subject: 'Reset Password',
